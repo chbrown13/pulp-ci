@@ -1,0 +1,110 @@
+---
+- name: 'Connecting to the remote Host'
+  hosts: rhelos
+  vars:
+    aes_file_path: '/proc/cpuinfo '
+    grub_default_path: '/etc/default/grub'
+    efi_file_path: '/sys/firmware/efi'
+    grub_bios_config: '/etc/grub2.cfg'
+    grub_efi_config: '/etc/grub2-efi.cfg'
+    fips_check_path: "/proc/sys/crypto/fips_enabled"
+
+  tasks:
+    - name: If FIPS is enabled stop execution
+      block:
+        - name: 'Collecting Fips Information from machine'
+          command: 'grep 1 {{fips_check_path}}'
+          register: fips_check
+          check_mode: no
+          ignore_errors: yes
+          changed_when: no
+        
+        - name: 'Debugging Information if Fips is enabled'
+          debug:
+            msg: "Fips is already enabled Hence stoping execution"
+          when: fips_check.rc == 0
+
+        - name: 'Continuing Playbook execution since FIPS is not enabled'
+          meta: end_play      
+          when: fips_check.rc == 0
+
+    - name: Installed Dracut Fips Package
+      yum:
+        name: dracut-fips
+        state: latest
+  
+    - name: Register aes installation
+      command: cat {{aes_file_path}}
+      register: aes_file
+
+    - name: Check and Install Dracut Aes
+      yum:
+        name: dracut-fips-aesni
+        state: latest
+      when:
+        aes_file.stdout.find('aes') != -1
+
+    - name: Regeneratting initramfs
+      command: 'dracut -f'
+
+    - name: Get the Boot filesystem
+      shell: "df /boot --output=source |tail -n+2"
+      register: boot_dev
+
+    - name: Get UUID of the Boot filesystem
+      shell: "blkid {{boot_dev.stdout}} -o export|grep UUID"
+      register: uuid_dev
+
+    - name: Check whether Grub contains fips command
+      command: grep -q -i fips {{grub_default_path}}
+      register: is_fips_in_grub
+      ignore_errors: yes
+      check_mode: no
+
+    - name: Edit the Grub to include fips
+      lineinfile:
+        path: "{{grub_default_path}}"
+        regexp: "^(.*GRUB_CMDLINE_LINUX.*?\")(.*)"
+        line: '\1 fips=1 boot={{uuid_dev.stdout}} \2'
+        backrefs: yes
+      when: 
+        is_fips_in_grub.rc != 0
+
+    - name: Get Stats of Efi file
+      stat:
+        path: "{{efi_file_path}}"
+      register: efi_file
+
+    - name: Run Grub Reconfig in Bios mode is EFI doesnt exist
+      command: "grub2-mkconfig -o {{grub_bios_config}}"
+      when:
+        efi_file.stat.exists == False
+      
+    - name: Run Grub Reconfig in EFI mode is EFI exist
+      command: "grub2-mkconfig -o {{grub_efi_config}}"
+      when:
+        efi_file.stat.exists == True
+
+    - name: restart the machine
+      shell: "sleep 5 & shutdown -r"
+      async: 1
+      poll: 0
+      ignore_errors: true
+
+    - name: wait for reboot
+      wait_for_connection:
+        delay: 30
+        timeout: 300
+        connect_timeout: 20
+        sleep: 5
+  
+    - name: Read contents of fips file
+      command: 'cat {{fips_check_path}}'
+      register: fips_file
+
+    - name: Check whether Fips is enabled
+      debug: 
+        msg: "Fips is enabled"
+      when: fips_file.stdout.find('1') != -1 
+
+...
