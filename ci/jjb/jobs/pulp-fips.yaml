@@ -27,10 +27,10 @@
         - shell:
             !include-raw-escape:
                 - 'ssh-setup.sh'
-                - 'fips-setup.sh'
+                
         - shell:
             !include-raw-escape:
-                - 'pulp-install.sh'
+                - 'fips_setup.sh'
                 - 'pulp-coverage-setup.sh'
                 - 'pulp-smash-parameters.sh'
         - inject:
