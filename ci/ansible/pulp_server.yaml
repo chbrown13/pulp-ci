@@ -5,7 +5,6 @@
     - role: subscription-manager
       when: ansible_distribution == 'RedHat'
     - role: pulp
-    - role: pulp_fips
     - role: lazy
       when: pulp_version | version_compare('2.8', '>=')
     - role: pulp-certs
