@@ -1,0 +1,6 @@
+aes_file_path: '/proc/cpuinfo '
+grub_default_path: '/etc/default/grub'
+efi_file_path: '/sys/firmware/efi'
+grub_bios_config: '/etc/grub2.cfg'
+grub_efi_config: '/etc/grub2-efi.cfg'
+fips_check_path: "/proc/sys/crypto/fips_enabled"
