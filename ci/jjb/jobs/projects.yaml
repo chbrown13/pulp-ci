@@ -55,18 +55,6 @@
         - pulp-{build_version}-dev-{os}
 
 - project:
-    name: pulp-fips
-    build_version:
-      - 2-master:
-          pulp_version: '2.17'
-          reverse_trigger: '2-master'
-      - 2.16:
-          pulp_version: '2.16'
-    reverse_trigger: '{build_version}-dev'
-    jobs:
-        - raga-pulp-{build_version}-fips
-
-- project:
     name: pulp-3-pypi
     os:
         - f26
@@ -188,7 +176,7 @@
       - pulp_docker:
           min_coverage: 100
           unittest_branches:
-            - master
+            - 2-master
             - 3.1-release
           unittest_platforms:
             - f26-np
@@ -237,7 +225,7 @@
           min_coverage: 87
           unittest_branches:
             - 2.15-release
-            - master
+            - 2-master
           unittest_platforms:
             - f26-np
             - f27-np
@@ -273,7 +261,7 @@
             - mibanescu
       - pulp_docker:
           docs_branches:
-            - master
+            - 2-master
             - 2.5-dev
           docs_platforms:
             - f27-np
@@ -301,7 +289,7 @@
       - pulp_rpm:
           docs_branches:
             - 2.14-dev
-            - master
+            - 2-master
           docs_platforms:
             - f27-np
           docs_whitelist: ""
